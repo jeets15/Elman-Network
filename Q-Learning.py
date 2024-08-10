@@ -1,5 +1,7 @@
 
 import numpy as np
+import pandas as pd
+import os
 
 
 environment_rows = 11
@@ -12,8 +14,8 @@ learning_rate = 0.4 # the rate at which the AI agent should learn
 episode = 3000
 
 # define starting position
-starting_row = 9
-starting_column = 5
+starting_row = 5
+starting_column = 10
 
 #define goal position
 goal_row = 0
@@ -93,22 +95,32 @@ def get_next_location(current_row_index, current_column_index, action_index):
 
 
 def get_shortest_path(start_row_index, start_column_index):
+    if is_terminal_state(start_row_index, start_column_index):
+        return []
+    else:
+        current_row_index, current_column_index = start_row_index, start_column_index
+        shortest_path = []
+        shortest_path.append([current_row_index, current_column_index])
 
-  if is_terminal_state(start_row_index, start_column_index):
-    return []
-  else:
-    current_row_index, current_column_index = start_row_index, start_column_index
-    shortest_path = []
-    shortest_path.append([current_row_index, current_column_index])
+        while not is_terminal_state(current_row_index, current_column_index):
+            action_index = get_next_action(current_row_index, current_column_index, 1.)
 
-    while not is_terminal_state(current_row_index, current_column_index):
+            # Get the name of the action taken
+            action_taken = actions[action_index]
 
-      action_index = get_next_action(current_row_index, current_column_index, 1.)
+            # Move to the next location based on the action
+            new_row_index, new_column_index = get_next_location(current_row_index, current_column_index, action_index)
 
-      current_row_index, current_column_index = get_next_location(current_row_index, current_column_index, action_index)
-      shortest_path.append([current_row_index, current_column_index])
-    return shortest_path
+            # Print the state visited and the action taken
+            print(f"Visited State: ({current_row_index}, {current_column_index}), Action Taken: {action_taken}")
 
+            # Update the current position
+            current_row_index, current_column_index = new_row_index, new_column_index
+
+            # Add the new position to the path
+            shortest_path.append([current_row_index, current_column_index])
+
+        return shortest_path
 
 
 # Training Process
@@ -138,12 +150,45 @@ print('Training complete!')
 
 
 
-#display shortest paths
-print('Start Position:', starting_row, ',',starting_column)
+
+
+# Display shortest paths
+print('Start Position:', starting_row, ',', starting_column)
 print('Goal Position:', goal_row, ',', goal_column)
 print('Path Taken:')
-print(get_shortest_path(starting_row, starting_column))
+path_taken = get_shortest_path(starting_row, starting_column)
+print("Path:", path_taken)
 
 
+def store_q_learning_dataset(start_row_index, start_column_index, goal_row_index, goal_column_index,
+                             filename='q_learning_dataset.csv'):
+    data = []
 
+    if is_terminal_state(start_row_index, start_column_index):
+        return
+    else:
+        current_row_index, current_column_index = start_row_index, start_column_index
 
+        while not is_terminal_state(current_row_index, current_column_index):
+            action_index = get_next_action(current_row_index, current_column_index, 1.)
+            action_taken = actions[action_index]
+            new_row_index, new_column_index = get_next_location(current_row_index, current_column_index, action_index)
+
+            # Record the data
+            data.append({
+                'start state': (start_row_index, start_column_index),
+                'state': (current_row_index, current_column_index),
+                'action': action_taken,
+                'goal state': (goal_row_index, goal_column_index)
+            })
+
+            current_row_index, current_column_index = new_row_index, new_column_index
+
+    # Create a DataFrame
+    df = pd.DataFrame(data)
+
+    # Append to the CSV file without overwriting
+    df.to_csv(filename, mode='a', header=not pd.io.common.file_exists(filename), index=False)
+    print(f'Dataset appended to {filename}')
+
+store_q_learning_dataset(starting_row, starting_column, goal_row, goal_column)
