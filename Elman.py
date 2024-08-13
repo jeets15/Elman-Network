@@ -5,52 +5,39 @@ def sigmoid(x):
     return np.tanh(x)
 
 def dsigmoid(x):
-    return 1.0 - x**2 # review
+    return 1.0 - x**2
 
 class Elman:
-
     def __init__(self, *args):
-
         self.shape = args
         n = len(args)
-
         self.layers = []
-
         self.layers.append(np.ones(self.shape[0]+1+self.shape[1]))
-        # no. of input neuron + 1(bias) + no. of Hidden neuron
 
         for i in range(1, n):
             self.layers.append(np.ones(self.shape[i]))
 
         self.weights = []
         for i in range(n - 1):
-            self.weights.append(np.zeros((self.layers[i].size,
-                                          self.layers[i + 1].size)))
+            self.weights.append(np.zeros((self.layers[i].size, self.layers[i + 1].size)))
 
         self.dw = [0, ] * len(self.weights)
-
         self.reset()
 
     def reset(self):
-       for i in range(len(self.weights)):
+        for i in range(len(self.weights)):
             Z = np.random.random((self.layers[i].size, self.layers[i+1].size))
             self.weights[i][...] = (2*Z-1)*0.25
 
     def propagate_forward(self, data):
-
         self.layers[0][:self.shape[0]] = data
-
         self.layers[0][self.shape[0]:-1] = self.layers[1]
-
         for i in range(1, len(self.shape)):
             self.layers[i][...] = sigmoid(np.dot(self.layers[i-1], self.weights[i-1]))
-
         return self.layers[-1]
 
     def propagate_backward(self, target, lrate=0.1, momentum=0.1):
-
         deltas = []
-
         error = target - self.layers[-1]
         delta = error * dsigmoid(self.layers[-1])
         deltas.append(delta)
@@ -68,53 +55,63 @@ class Elman:
 
         return (error ** 2).sum()
 
-    def train(self, dataset, epochs=100, lrate=0.1, momentum=0.1):
+
+
+    def train(self, X, y, epochs=1000, lrate=0.1, momentum=0.1):
         for epoch in range(epochs):
-            total_error = 0
-            for state, action, q_value in dataset:
-                output = self.propagate_forward(state)
-                target = np.copy(output)
-                target[action] = q_value
-                error = self.propagate_backward(target, lrate, momentum)
-                total_error += error
-            print(f"Epoch {epoch+1}/{epochs}, Error: {total_error}")
+            error = 0.0
+            for i in range(X.shape[0]):
+                self.propagate_forward(X[i])
+                error += self.propagate_backward(y[i], lrate, momentum)
+            if epoch % 100 == 0:
+                print(f'Epoch {epoch} Error: {error}')
 
-    def predict(self, state):
-        output = self.propagate_forward(state)
-        return output
+    def predict(self, X):
+        return self.propagate_forward(X)
 
 
 
-# Example usage
-input_size = 2
-hidden_size = 5
-output_size = 4
-
-network = Elman(input_size, hidden_size, output_size)
 
 
-csv_file_path = "q_value_dataset.csv"
+# Data preprocessing
+data = pd.read_csv("q_value_dataset.csv")
+
+def state_to_vector(state):
+    return np.array(eval(state))
+
+def action_to_vector(action):
+    actions = ['up', 'right', 'left']
+    vec = np.zeros(len(actions))
+    vec[actions.index(action)] = 1
+    return vec
+
+X = []
+y = []
+
+for i, row in data.iterrows():
+    start_state = state_to_vector(row['state'])
+    action = action_to_vector(row['action'])
+    X.append(start_state)
+    y.append(action)
+
+X = np.array(X)
+y = np.array(y)
+
+# 1 represents number of tuple
+input_size = X.shape[1]
+output_size = y.shape[1]
+hidden_neurons = 10
+
+net = Elman(input_size, hidden_neurons, output_size)
+
+# Train the network
+net.train(X, y, epochs=5000, lrate=0.01, momentum=0.1)
+
+# Predict for given state
+test_state = state_to_vector("(9, 0")
+predicted_action = net.predict(test_state)
+print("Predicted action (raw output):", predicted_action)
 
 
-df = pd.read_csv(csv_file_path)
-
-
-def parse_state(state_str, target_shape=input_size):
-    state_str = state_str.strip('[]')
-    state_list = state_str.split()
-    state_array = np.array([float(state_list[0]), float(state_list[1])])
-
-    padded_state = np.pad(state_array, (0, target_shape - len(state_array)), 'constant')
-    return padded_state
-
-
-dataset = [(parse_state(row['State']), int(row['Action']), float(row['Q-Value'])) for index, row in df.iterrows()]
-
-
-network.train(dataset, epochs=100, lrate=0.1, momentum=0.1)
-
-
-state = np.array([12,12])
-q_values = network.predict(state)
-print("Predicted Q-values:", q_values)
-
+predicted_action_label = ['up', 'right', 'left'][np.argmax(predicted_action)]
+print("Predicted action:", predicted_action_label)

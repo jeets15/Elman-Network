@@ -11,8 +11,8 @@ learning_rate = 0.4    # the rate at which the AI agent should learn
 episode = 10000        # no. of times to run
 
 # define starting position
-starting_row = 7
-starting_column = 9
+starting_row = 9
+starting_column = 0
 
 #define goal position
 goal_row = 0

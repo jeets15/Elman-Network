@@ -13,3 +13,15 @@ which it has not been trained on.
 
 The basic idea is to determine how does a simple RN  compare against various traditional techniques such as
 q-learning.
+
+
+
+
+
+
+intro 2000
+cinvince reader of topic, presenting research question.
+
+create diagram of hidden unit when
+
+similarity of hidden unit activation diagram.
