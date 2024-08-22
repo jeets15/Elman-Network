@@ -20,7 +20,7 @@ q-learning.
 
 
 intro 2000
-cinvince reader of topic, presenting research question.
+convince reader of topic, presenting research question.
 
 create diagram of hidden unit when
 
